@@ -1,5 +1,3 @@
-// path: lib/business/energy_dashboard_controller.dart
-
 import 'dart:async';
 import 'package:energy_dashboard/data_service.dart';
 
@@ -12,7 +10,6 @@ class EnergyDashboardController {
   String? weatherDescription;
   double? weatherTemperature;
 
-  // Fetch and update energy data from the server
   Future<void> updateEnergyData() async {
     try {
       final data = await dataService.fetchData();
@@ -25,7 +22,6 @@ class EnergyDashboardController {
     }
   }
 
-  // Fetch and update weather data
   Future<void> updateWeatherData() async {
     try {
       final weatherData = await dataService.fetchWeatherData("Pretoria");
@@ -36,11 +32,10 @@ class EnergyDashboardController {
     }
   }
 
-  // Schedule periodic data updates
   void startPeriodicUpdates(Duration interval) {
-    Timer.periodic(interval, (Timer t) {
-      updateEnergyData();
-      updateWeatherData();
+    Timer.periodic(interval, (Timer t) async {
+      await updateEnergyData();
+      await updateWeatherData();
     });
   }
 }

@@ -1,5 +1,3 @@
-// path: lib/data/data_service.dart
-
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -8,7 +6,6 @@ class DataService {
   final String weatherApiUrl = 'https://api.openweathermap.org/data/2.5/weather';
   final String apiKey = "4b8fce8675e61cc8de7c4890d6f1dc0a";
 
-  // Fetch energy data
   Future<Map<String, dynamic>> fetchData() async {
     final response = await http.get(Uri.parse(baseUrl));
     if (response.statusCode == 200) {
@@ -18,7 +15,6 @@ class DataService {
     }
   }
 
-  // Fetch weather data for a given city
   Future<Map<String, dynamic>> fetchWeatherData(String city) async {
     final response = await http.get(
       Uri.parse('$weatherApiUrl?q=$city&appid=$apiKey&units=metric'),

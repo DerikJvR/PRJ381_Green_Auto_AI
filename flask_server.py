@@ -1,12 +1,7 @@
 from flask import Flask, jsonify
-import pandas as pd
-from flask import Flask, jsonify
-import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-import joblib
 import random
+import numpy as np
+import joblib
 
 app = Flask(__name__)
 
@@ -19,13 +14,10 @@ def get_data():
     light_intensity = random.randint(100, 1000)
     
     # Determine power mode based on light intensity
-    if light_intensity < 300:
-        power_mode = "Power Saving"
-    else:
-        power_mode = "Normal"
+    power_mode = "Power Saving" if light_intensity < 300 else "Normal"
     
-    # Predict whether energy will last based on model inputs
-    input_data = np.array([random.uniform(0, 10), random.uniform(0, 8), random.uniform(10, 100)]).reshape(1, -1)
+    # Use the model to predict if energy will last
+    input_data = np.array([temperature, light_intensity, random.uniform(10, 100)]).reshape(1, -1)
     energy_will_last = model.predict(input_data)[0]
     
     data = {
@@ -38,4 +30,4 @@ def get_data():
     return jsonify(data)
 
 if __name__ == '__main__':
-    app.run(port=5000)
+    app.run(port=5000, debug=True)

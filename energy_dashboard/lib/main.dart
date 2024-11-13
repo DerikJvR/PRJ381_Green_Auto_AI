@@ -1,5 +1,3 @@
-// path: lib/main.dart
-
 import 'package:flutter/material.dart';
 import 'package:energy_dashboard/dashboard_screen.dart';
 import 'energy_dashboard_controller.dart';
@@ -23,8 +21,8 @@ class _EnergyDashboardState extends State<EnergyDashboard> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _controller.startPeriodicUpdates(Duration(minutes: 1));
-    _loadData(); // Call function to load data initially and set loading state
+    _controller.startPeriodicUpdates(Duration(seconds: 60)); // Fetch data every 60 seconds
+    _loadData();
     _animationController = AnimationController(vsync: this, duration: Duration(seconds: 1));
     _fadeIn = CurvedAnimation(parent: _animationController, curve: Curves.easeIn);
     _animationController.forward();
@@ -34,7 +32,7 @@ class _EnergyDashboardState extends State<EnergyDashboard> with SingleTickerProv
     await _controller.updateEnergyData();
     await _controller.updateWeatherData();
     setState(() {
-      _isLoading = false; // Disable loading state after data is loaded
+      _isLoading = false;
     });
   }
 
@@ -61,8 +59,9 @@ class _EnergyDashboardState extends State<EnergyDashboard> with SingleTickerProv
         weatherDescription: _controller.weatherDescription,
         weatherTemperature: _controller.weatherTemperature,
         animation: _fadeIn,
-        isLoading: _isLoading, // Pass loading state to DashboardScreen
+        isLoading: _isLoading,
       ),
     );
   }
 }
+
