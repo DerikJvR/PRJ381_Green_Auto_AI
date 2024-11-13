@@ -1,0 +1,22 @@
+name: energy_dashboard
+description: A Flutter project for an energy dashboard.
+
+publish_to: 'none' # Remove this line if you want to publish to pub.dev
+
+environment:
+  sdk: ">=2.18.0 <3.0.0" # Adjust the SDK version as needed
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^0.13.4 # Ensure this is properly aligned
+  provider: ^6.0.3
+  # Add any other dependencies you need
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0 # Ensure you have this line
+
+# The following adds the Cupertino Icons font to your application.
+cupertino_icons: ^1.0.8
