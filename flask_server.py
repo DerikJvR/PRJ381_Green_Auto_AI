@@ -5,29 +5,28 @@ import joblib
 
 app = Flask(__name__)
 
-# Load the pre-trained model
 model = joblib.load('energy_model.pkl')
 
 @app.route('/data', methods=['GET'])
 def get_data():
     temperature = round(random.uniform(0, 30), 2)
     light_intensity = random.randint(100, 1000)
-    
-    # Determine power mode based on light intensity
+    potentiometer_voltage = round(random.uniform(0.5, 5.0), 2)
+    solar_panel_voltage = round(random.uniform(0, 2.5), 2)
     power_mode = "Power Saving" if light_intensity < 300 else "Normal"
-    
-    # Use the model to predict if energy will last
-    input_data = np.array([temperature, light_intensity, random.uniform(10, 100)]).reshape(1, -1)
+    input_data = np.array([temperature, light_intensity, potentiometer_voltage, solar_panel_voltage]).reshape(1, -1)
     energy_will_last = model.predict(input_data)[0]
-    
+
     data = {
         'temperature': temperature,
         'light_intensity': light_intensity,
+        'potentiometer_voltage': potentiometer_voltage,
+        'solar_panel_voltage': solar_panel_voltage,
         'power_mode': power_mode,
         'prediction': int(energy_will_last)
     }
-    
+
     return jsonify(data)
 
 if __name__ == '__main__':
-    app.run(port=5000, debug=True)
+    app.run(debug=True)
