@@ -1,40 +1,57 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'data_service.dart';
-
+ 
 class DashboardScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
   final ThemeMode themeMode;
-  final double? temperature;
-  final double? lightIntensity;
-  final String powerMode;
-  final double? prediction;
-  final String? weatherDescription;
-  final double? weatherTemperature;
-  final Animation<double> animation;
-  final bool isLoading;
-
-  const DashboardScreen({
-    required this.toggleTheme,
-    required this.themeMode,
-    required this.temperature,
-    required this.lightIntensity,
-    required this.powerMode,
-    required this.prediction,
-    required this.weatherDescription,
-    required this.weatherTemperature,
-    required this.animation,
-    required this.isLoading,
-  });
-
+ 
+  DashboardScreen({required this.toggleTheme, required this.themeMode});
+ 
+  @override
+  _DashboardScreenState createState() => _DashboardScreenState();
+}
+ 
+class _DashboardScreenState extends State<DashboardScreen> {
+  final DataService dataService = DataService();
+  Map<String, dynamic>? data;
+  Map<String, dynamic>? weatherData;
+  bool isLoading = true;
+ 
+  @override
+  void initState() {
+    super.initState();
+    fetchData();
+    Timer.periodic(Duration(seconds: 60), (timer) {
+      fetchData();
+    });
+  }
+ 
+  Future<void> fetchData() async {
+    setState(() => isLoading = true);
+ 
+    try {
+      final serverData = await dataService.fetchData();
+      final weather = await dataService.fetchWeatherData("Pretoria");
+      setState(() {
+        data = serverData;
+        weatherData = weather;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      print("Error fetching data: $e");
+    }
+  }
+ 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = widget.themeMode == ThemeMode.dark;
-
+ 
     return Scaffold(
       appBar: AppBar(
-        title: Text('AI Arduino Power Saver'),
+        title: Text('Energy Dashboard'),
         centerTitle: true,
         actions: [
           Switch(
@@ -45,61 +62,60 @@ class DashboardScreen extends StatefulWidget {
         ],
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator()) // Show loading indicator
-          : FadeTransition(
-              opacity: animation,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Dashboard Overview",
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).textTheme.bodyLarge?.color,
-                      ),
+          ? Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    "Dashboard Overview",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: theme.textTheme.bodyLarge?.color,
                     ),
-                    const SizedBox(height: 20),
-                    if (weatherDescription != null && weatherTemperature != null)
-                      WeatherInfoCard(
-                        description: weatherDescription!,
-                        temperature: weatherTemperature!,
-                      ),
-                    const Divider(height: 30, color: Colors.grey),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        InfoCard(
-                          label: "Temperature",
-                          value: "${temperature?.toStringAsFixed(1) ?? '--'}°C",
-                          icon: Icons.thermostat,
-                        ),
-                        InfoCard(
-                          label: "Light Intensity",
-                          value: "${lightIntensity?.toStringAsFixed(0) ?? '--'} Lux",
-                          icon: Icons.light_mode,
-                        ),
-                      ],
+                  ),
+                  const SizedBox(height: 20),
+                  if (weatherData != null)
+                    WeatherInfoCard(
+                      description: weatherData!["weather"][0]["description"],
+                      temperature: weatherData!["main"]["temp"],
                     ),
-                    const SizedBox(height: 20),
-                    PowerModeDisplay(mode: powerMode), // Custom widget for power mode
-                    const SizedBox(height: 10),
-                    PredictionDisplay(prediction: prediction), // Custom widget for prediction
-                  ],
-                ),
+                  const Divider(height: 30, color: Colors.grey),
+                  InfoRow(
+                    label1: "Temperature",
+                    value1: "${data?['temperature'] ?? '--'}°C",
+                    icon1: Icons.thermostat,
+                    label2: "Light Intensity",
+                    value2: "${data?['light_intensity'] ?? '--'} Lux",
+                    icon2: Icons.light_mode,
+                  ),
+                  const SizedBox(height: 20),
+                  InfoRow(
+                    label1: "Potentiometer Voltage",
+                    value1: "${data?['potentiometer_voltage'] ?? '--'} V",
+                    icon1: Icons.power,
+                    label2: "Solar Panel Voltage",
+                    value2: "${data?['solar_panel_voltage'] ?? '--'} V",
+                    icon2: Icons.solar_power,
+                  ),
+                  const Divider(height: 30, color: Colors.grey),
+                  PowerModeDisplay(mode: data?['power_mode'] ?? "Unknown"),
+                  const SizedBox(height: 10),
+                  PredictionDisplay(prediction: data?['prediction']),
+                ],
               ),
             ),
     );
   }
 }
-
+ 
 class PowerModeDisplay extends StatelessWidget {
   final String mode;
-
-  const PowerModeDisplay({super.key, required this.mode});
-
+ 
+  const PowerModeDisplay({required this.mode});
+ 
   @override
   Widget build(BuildContext context) {
     final color = mode == "Power Saving" ? Colors.redAccent : Colors.blueAccent;
@@ -113,19 +129,19 @@ class PowerModeDisplay extends StatelessWidget {
     );
   }
 }
-
+ 
 class PredictionDisplay extends StatelessWidget {
   final int? prediction;
-
-  const PredictionDisplay({super.key, required this.prediction});
-
+ 
+  const PredictionDisplay({required this.prediction});
+ 
   @override
   Widget build(BuildContext context) {
     final isLasting = prediction == 1;
     final icon = isLasting ? Icons.check_circle : Icons.warning;
     final color = isLasting ? Colors.green : Colors.red;
     final text = isLasting ? "Power will last" : "Power will not last";
-
+ 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -142,28 +158,30 @@ class PredictionDisplay extends StatelessWidget {
     );
   }
 }
-
+ 
 class WeatherInfoCard extends StatelessWidget {
   final String description;
   final double temperature;
-
-  const WeatherInfoCard({super.key, 
+ 
+  const WeatherInfoCard({
     required this.description,
     required this.temperature,
   });
-
+ 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Column(
       children: [
         Text(
-          "Pretoria Weather",
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+          description,
+          style: TextStyle(
+            fontSize: 20,
+            color: theme.colorScheme.primary,
+          ),
         ),
-        const SizedBox(height: 5),
         Text(
-          "$description, ${temperature.toStringAsFixed(1)}°C",
+          "${temperature.toStringAsFixed(1)} °C",
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -173,7 +191,7 @@ class WeatherInfoCard extends StatelessWidget {
     );
   }
 }
-
+ 
 class InfoRow extends StatelessWidget {
   final String label1;
   final String value1;
@@ -181,7 +199,7 @@ class InfoRow extends StatelessWidget {
   final String label2;
   final String value2;
   final IconData icon2;
-
+ 
   const InfoRow({
     required this.label1,
     required this.value1,
@@ -190,7 +208,7 @@ class InfoRow extends StatelessWidget {
     required this.value2,
     required this.icon2,
   });
-
+ 
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -202,37 +220,35 @@ class InfoRow extends StatelessWidget {
     );
   }
 }
-
+ 
 class InfoCard extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
-
-  const InfoCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
-
+ 
+  const InfoCard({required this.label, required this.value, required this.icon});
+ 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [Colors.blueAccent, Colors.lightBlueAccent]),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 2))],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.white, size: 36),
-          const SizedBox(height: 8),
-          Text(label, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 4),
-          Text(value, style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-        ],
-      ),
+    return Column(
+      children: [
+        Icon(icon, color: Colors.green, size: 40),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 22,
+            color: Colors.grey[800],
+          ),
+        ),
+      ],
     );
   }
 }
