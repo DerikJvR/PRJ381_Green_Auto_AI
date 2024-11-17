@@ -1,66 +1,39 @@
 from flask import Flask, jsonify
-import serial
-import numpy as np
-import joblib
+from flask_cors import CORS
+import csv
+import os
 
-# Initialize the Flask app
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
-# Load the trained machine learning model
-model = joblib.load('energy_model.pkl')
-
-# Configure Serial connection to Arduino
-# Replace 'COM3' with your Arduino's port
-arduino_port = 'COM4'
-baud_rate = 9600
-ser = serial.Serial(arduino_port, baud_rate, timeout=1)
+# Path to the shared CSV file
+csv_file_path = 'sensor_data.csv'
 
 @app.route('/data', methods=['GET'])
 def get_data():
-    """
-    Fetch data from the Arduino, make predictions using the ML model,
-    and return the processed data in JSON format.
-    """
+    """Serve the latest data from the shared CSV file."""
+    if not os.path.exists(csv_file_path):
+        return jsonify({"error": "No data available"}), 404
+
     try:
-        # Read a line from the Serial connection
-        line = ser.readline().decode('utf-8').strip()
-        values = line.split(',')
-
-        # Ensure we have all the expected values from the Arduino
-        if len(values) == 4:
-            # Parse the data into meaningful variables
-            temperature = float(values[0])
-            light_intensity = float(values[1])
-            potentiometer_voltage = float(values[2])
-            solar_panel_voltage = float(values[3])
-
-            # Determine power mode based on light intensity
-            power_mode = "Power Saving" if light_intensity < 300 else "Normal"
-
-            # Prepare input data for prediction
-            input_data = np.array([temperature, light_intensity, potentiometer_voltage, solar_panel_voltage]).reshape(1, -1)
-            energy_will_last = model.predict(input_data)[0]
-
-            # Prepare response data
-            data = {
-                'temperature': temperature,
-                'light_intensity': light_intensity,
-                'potentiometer_voltage': potentiometer_voltage,
-                'solar_panel_voltage': solar_panel_voltage,
-                'power_mode': power_mode,
-                'prediction': int(energy_will_last)
-            }
-            return jsonify(data)
-
-        else:
-            return jsonify({'error': 'Incomplete data from Arduino'}), 400
-
+        with open(csv_file_path, mode='r') as file:
+            reader = csv.DictReader(file)
+            rows = list(reader)
+            if rows:
+                latest_row = rows[-1]  # Get the most recent data
+                return jsonify({
+                    "temperature": float(latest_row["temperature"]),
+                    "light_intensity": float(latest_row["light_intensity"]),
+                    "potentiometer_voltage": float(latest_row["potentiometer_voltage"]),
+                    "solar_panel_voltage": float(latest_row["solar_panel_voltage"]),
+                    "timestamp": latest_row.get("timestamp", "N/A")  # Optional timestamp field
+                })
+            else:
+                return jsonify({"error": "No data available"}), 404
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
-if __name__ == '__main__':
-    try:
-        print(f"Connecting to Arduino on {arduino_port}...")
-        app.run(debug=True)
-    except serial.SerialException:
-        print("Error: Unable to connect to Arduino. Check the Serial port.")
+
+if __name__ == "__main__":
+    # Run the server on all available addresses (host="0.0.0.0")
+    app.run(debug=True, host="0.0.0.0", port=5000)

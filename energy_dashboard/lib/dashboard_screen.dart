@@ -17,16 +17,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic>? data;
   Map<String, dynamic>? weatherData;
   bool isLoading = true;
+  Timer? periodicTimer;
 
   @override
   void initState() {
     super.initState();
     fetchData();
-    Timer.periodic(Duration(seconds: 60), (timer) async {
+    periodicTimer = Timer.periodic(Duration(seconds: 60), (timer) async {
       if (mounted) {
         await fetchData();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    periodicTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> fetchData() async {
@@ -85,85 +92,55 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 20),
                   if (weatherData != null)
                     WeatherInfoCard(
-                      description: weatherData!["weather"][0]["description"],
-                      temperature: weatherData!["main"]["temp"],
+                      description: weatherData?["weather"]?[0]["description"] ?? "No Description",
+                      temperature: weatherData?["main"]?["temp"]?.toDouble() ?? 0.0,
+                    )
+                  else
+                    Center(
+                      child: Text(
+                        "Weather data unavailable",
+                        style: TextStyle(fontSize: 16, color: Colors.red),
+                      ),
                     ),
                   const Divider(height: 30, color: Colors.grey),
                   InfoRow(
                     label1: "Temperature",
                     value1: "${data?['temperature'] ?? '--'}°C",
-                    icon1: Icons.thermostat, // Temperature icon
+                    icon1: Icons.thermostat,
                     label2: "Light Intensity",
                     value2: "${data?['light_intensity'] ?? '--'} Lux",
-                    icon2: Icons.light_mode, // Light intensity icon
+                    icon2: Icons.light_mode,
                   ),
                   const SizedBox(height: 20),
                   InfoRow(
                     label1: "Potentiometer Voltage",
                     value1: "${data?['potentiometer_voltage'] ?? '--'} V",
-                    icon1: Icons.power, // Potentiometer voltage icon
+                    icon1: Icons.power,
                     label2: "Solar Panel Voltage",
                     value2: "${data?['solar_panel_voltage'] ?? '--'} V",
-                    icon2: Icons.solar_power, // Solar panel voltage icon
+                    icon2: Icons.solar_power,
                   ),
                   const Divider(height: 30, color: Colors.grey),
-                  PowerModeDisplay(mode: data?['power_mode'] ?? "Unknown"),
-                  const SizedBox(height: 10),
-                  PredictionDisplay(prediction: data?['prediction']),
+                  Text(
+                    "Power Mode: ${calculatePowerMode(data)}",
+                    style: TextStyle(
+                      fontSize: 22,
+                      color: Colors.blueAccent,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'NotoSans',
+                    ),
+                  ),
                 ],
               ),
             ),
     );
   }
-}
 
-class PowerModeDisplay extends StatelessWidget {
-  final String mode;
-
-  const PowerModeDisplay({required this.mode});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = mode == "Power Saving" ? Colors.redAccent : Colors.blueAccent;
-    return Text(
-      "Mode: $mode",
-      style: TextStyle(
-        fontSize: 22,
-        color: color,
-        fontWeight: FontWeight.bold,
-        fontFamily: 'NotoSans',
-      ),
-    );
-  }
-}
-
-class PredictionDisplay extends StatelessWidget {
-  final int? prediction;
-
-  const PredictionDisplay({required this.prediction});
-
-  @override
-  Widget build(BuildContext context) {
-    final isLasting = prediction == 1;
-    final icon = isLasting ? Icons.check_circle : Icons.warning;
-    final color = isLasting ? Colors.green : Colors.red;
-    final text = isLasting ? "Power will last" : "Power will not last";
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, color: color, size: 30), // Material Icons used here
-        const SizedBox(width: 8),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 20,
-            color: color,
-            fontFamily: 'NotoSans',
-          ),
-        ),
-      ],
-    );
+  String calculatePowerMode(Map<String, dynamic>? data) {
+    if (data == null) return "Unknown";
+    final potVoltage = data['potentiometer_voltage']?.toDouble() ?? 0.0;
+    final solarVoltage = data['solar_panel_voltage']?.toDouble() ?? 0.0;
+    return potVoltage > solarVoltage ? "Strained" : "Optimal";
   }
 }
 
@@ -186,7 +163,6 @@ class WeatherInfoCard extends StatelessWidget {
           style: TextStyle(
             fontSize: 20,
             color: theme.colorScheme.primary,
-            fontFamily: 'NotoSans',
           ),
         ),
         Text(
@@ -194,7 +170,6 @@ class WeatherInfoCard extends StatelessWidget {
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            fontFamily: 'NotoSans',
           ),
         ),
       ],
