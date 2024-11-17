@@ -11,6 +11,7 @@ dependencies:
     sdk: flutter
   http: ^0.13.4 # Ensure this is properly aligned
   provider: ^6.0.3
+  cupertino_icons: ^1.0.8
   # Add any other dependencies you need
 
 dev_dependencies:
@@ -18,5 +19,16 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^2.0.0 # Ensure you have this line
 
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/fonts/ # Add this line to include your font assets directory
+
+  fonts:
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
+        - asset: assets/fonts/NotoSans-Bold.ttf
+
 # The following adds the Cupertino Icons font to your application.
-cupertino_icons: ^1.0.8
+
