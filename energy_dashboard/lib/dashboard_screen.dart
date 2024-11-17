@@ -22,8 +22,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     fetchData();
-    Timer.periodic(Duration(seconds: 60), (timer) {
-      fetchData();
+    Timer.periodic(Duration(seconds: 60), (timer) async {
+      if (mounted) {
+        await fetchData();
+      }
     });
   }
  
